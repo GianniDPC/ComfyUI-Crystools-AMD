@@ -1,9 +1,10 @@
 deepdiff
 torch
 numpy
-Pillow>=9.5.0
-pynvml
+Pillow
+pynvml; platform_machine != 'aarch64'
 py-cpuinfo
 piexif
 --extra-index-url https://test.pypi.org/simple
 pyrsmi==0.0.6
+jetson-stats; platform_machine == 'aarch64'

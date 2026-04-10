@@ -183,6 +183,76 @@ class CrystoolsMonitor {
                 };
             }
         });
+        Object.defineProperty(this, "createSettingsMonitorWidth", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: () => {
+                this.settingsMonitorWidth = {
+                    id: this.monitorWidthId,
+                    name: 'Pixel Width',
+                    category: ['Crystools', this.menuPrefix + ' Configuration', 'width'],
+                    tooltip: 'The width of the monitor in pixels on the UI (only on top/bottom UI)',
+                    type: 'slider',
+                    attrs: {
+                        min: 60,
+                        max: 100,
+                        step: 1,
+                    },
+                    defaultValue: this.monitorWidth,
+                    onChange: (value) => {
+                        let valueNumber;
+                        try {
+                            valueNumber = parseInt(value);
+                            if (isNaN(valueNumber)) {
+                                throw new Error('invalid value');
+                            }
+                        }
+                        catch (error) {
+                            console.error(error);
+                            return;
+                        }
+                        const h = app.extensionManager.setting.get(this.monitorHeightId);
+                        this.monitorUI?.updateMonitorSize(valueNumber, h);
+                    },
+                };
+            }
+        });
+        Object.defineProperty(this, "createSettingsMonitorHeight", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: () => {
+                this.settingsMonitorHeight = {
+                    id: this.monitorHeightId,
+                    name: 'Pixel Height',
+                    category: ['Crystools', this.menuPrefix + ' Configuration', 'height'],
+                    tooltip: 'The height of the monitor in pixels on the UI (only on top/bottom UI)',
+                    type: 'slider',
+                    attrs: {
+                        min: 16,
+                        max: 50,
+                        step: 1,
+                    },
+                    defaultValue: this.monitorHeight,
+                    onChange: async (value) => {
+                        let valueNumber;
+                        try {
+                            valueNumber = parseInt(value);
+                            if (isNaN(valueNumber)) {
+                                throw new Error('invalid value');
+                            }
+                        }
+                        catch (error) {
+                            console.error(error);
+                            return;
+                        }
+                        const w = await app.extensionManager.setting.get(this.monitorWidthId);
+                        this.monitorUI?.updateMonitorSize(w, valueNumber);
+                    },
+                };
+            }
+        });
         Object.defineProperty(this, "createSettingsCPU", {
             enumerable: true,
             configurable: true,
@@ -201,8 +271,8 @@ class CrystoolsMonitor {
                     htmlMonitorLabelRef: undefined,
                     cssColor: Colors.CPU,
                     onChange: async (value) => {
-                        this.updateWidget(this.monitorCPUElement);
                         await this.updateServer({ switchCPU: value });
+                        this.updateWidget(this.monitorCPUElement);
                     },
                 };
             }
@@ -225,8 +295,8 @@ class CrystoolsMonitor {
                     htmlMonitorLabelRef: undefined,
                     cssColor: Colors.RAM,
                     onChange: async (value) => {
-                        this.updateWidget(this.monitorRAMElement);
                         await this.updateServer({ switchRAM: value });
+                        this.updateWidget(this.monitorRAMElement);
                     },
                 };
             }
@@ -256,8 +326,8 @@ class CrystoolsMonitor {
                     htmlMonitorLabelRef: undefined,
                     cssColor: Colors.GPU,
                     onChange: async (value) => {
+                        await this.updateServerGPU(index, { utilization: value });
                         this.updateWidget(monitorGPUNElement);
-                        void await this.updateServerGPU(index, { utilization: value });
                     },
                 };
                 this.monitorGPUSettings[index] = monitorGPUNElement;
@@ -290,8 +360,8 @@ class CrystoolsMonitor {
                     htmlMonitorLabelRef: undefined,
                     cssColor: Colors.VRAM,
                     onChange: async (value) => {
+                        await this.updateServerGPU(index, { vram: value });
                         this.updateWidget(monitorVRAMNElement);
-                        void await this.updateServerGPU(index, { vram: value });
                     },
                 };
                 this.monitorVRAMSettings[index] = monitorVRAMNElement;
@@ -325,8 +395,8 @@ class CrystoolsMonitor {
                     cssColor: Colors.TEMP_START,
                     cssColorFinal: Colors.TEMP_END,
                     onChange: async (value) => {
+                        await this.updateServerGPU(index, { temperature: value });
                         this.updateWidget(monitorTemperatureNElement);
-                        void await this.updateServerGPU(index, { temperature: value });
                     },
                 };
                 this.monitorTemperatureSettings[index] = monitorTemperatureNElement;
@@ -352,8 +422,8 @@ class CrystoolsMonitor {
                     htmlMonitorLabelRef: undefined,
                     cssColor: Colors.DISK,
                     onChange: async (value) => {
-                        this.updateWidget(this.monitorHDDElement);
                         await this.updateServer({ switchHDD: value });
+                        this.updateWidget(this.monitorHDDElement);
                     },
                 };
                 this.settingsHDD = {
@@ -362,87 +432,9 @@ class CrystoolsMonitor {
                     category: ['Crystools', this.menuPrefix + ' Show Hard Disk', 'Which'],
                     type: 'combo',
                     defaultValue: '/',
-                    data: [],
-                    options: (value) => {
-                        const which = app.ui.settings.getSettingValue(this.settingsHDD.id, this.settingsHDD.defaultValue);
-                        return this.settingsHDD.data.map((m) => ({
-                            value: m,
-                            text: m,
-                            selected: !value ? m === which : m === value,
-                        }));
-                    },
+                    options: [],
                     onChange: async (value) => {
                         await this.updateServer({ whichHDD: value });
-                    },
-                };
-            }
-        });
-        Object.defineProperty(this, "createSettingsMonitorWidth", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: () => {
-                this.settingsMonitorWidth = {
-                    id: this.monitorWidthId,
-                    name: 'Pixel Width',
-                    category: ['Crystools', this.menuPrefix + ' Configuration', 'width'],
-                    tooltip: 'The width of the monitor in pixels on the UI (only on floating UI)',
-                    type: 'slider',
-                    attrs: {
-                        min: 60,
-                        max: 100,
-                        step: 1,
-                    },
-                    defaultValue: this.monitorWidth,
-                    onChange: (value) => {
-                        let valueNumber;
-                        try {
-                            valueNumber = parseInt(value);
-                            if (isNaN(valueNumber)) {
-                                throw new Error('invalid value');
-                            }
-                        }
-                        catch (error) {
-                            console.error(error);
-                            return;
-                        }
-                        const h = app.ui.settings.getSettingValue(this.monitorHeightId, this.monitorHeight);
-                        this.monitorUI?.updateMonitorSize(valueNumber, h);
-                    },
-                };
-            }
-        });
-        Object.defineProperty(this, "createSettingsMonitorHeight", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: () => {
-                this.settingsMonitorHeight = {
-                    id: this.monitorHeightId,
-                    name: 'Pixel Height',
-                    category: ['Crystools', this.menuPrefix + ' Configuration', 'height'],
-                    tooltip: 'The height of the monitor in pixels on the UI (only on floating UI)',
-                    type: 'slider',
-                    attrs: {
-                        min: 16,
-                        max: 50,
-                        step: 1,
-                    },
-                    defaultValue: this.monitorHeight,
-                    onChange: async (value) => {
-                        let valueNumber;
-                        try {
-                            valueNumber = parseInt(value);
-                            if (isNaN(valueNumber)) {
-                                throw new Error('invalid value');
-                            }
-                        }
-                        catch (error) {
-                            console.error(error);
-                            return;
-                        }
-                        const w = await app.ui.settings.getSettingValue(this.monitorWidthId, this.monitorWidth);
-                        this.monitorUI?.updateMonitorSize(w, valueNumber);
                     },
                 };
             }
@@ -458,7 +450,7 @@ class CrystoolsMonitor {
                 app.ui.settings.addSetting(this.monitorRAMElement);
                 app.ui.settings.addSetting(this.monitorCPUElement);
                 void this.getHDDsFromServer().then((data) => {
-                    this.settingsHDD.data = data;
+                    this.settingsHDD.options = data;
                     app.ui.settings.addSetting(this.settingsHDD);
                 });
                 app.ui.settings.addSetting(this.monitorHDDElement);
@@ -484,8 +476,8 @@ class CrystoolsMonitor {
                 this.monitorUI.orderMonitors();
                 this.updateAllWidget();
                 this.moveMonitor(this.menuDisplayOption);
-                const w = app.ui.settings.getSettingValue(this.monitorWidthId, this.monitorWidth);
-                const h = app.ui.settings.getSettingValue(this.monitorHeightId, this.monitorHeight);
+                const w = app.extensionManager.setting.get(this.monitorWidthId);
+                const h = app.extensionManager.setting.get(this.monitorHeightId);
                 this.monitorUI.updateMonitorSize(w, h);
             }
         });
@@ -504,9 +496,9 @@ class CrystoolsMonitor {
             enumerable: true,
             configurable: true,
             writable: true,
-            value: (position) => {
+            value: (menuPosition) => {
                 let parentElement;
-                switch (position) {
+                switch (menuPosition) {
                     case MenuDisplayOptions.Disabled:
                         parentElement = document.getElementById('queue-button');
                         if (parentElement && this.monitorUI.rootElement) {
@@ -547,7 +539,7 @@ class CrystoolsMonitor {
             writable: true,
             value: (monitorSettings) => {
                 if (this.monitorUI) {
-                    const value = app.ui.settings.getSettingValue(monitorSettings.id, monitorSettings.defaultValue);
+                    const value = app.extensionManager.setting.get(monitorSettings.id);
                     this.monitorUI.showMonitor(monitorSettings, value);
                 }
             }
@@ -630,8 +622,8 @@ class CrystoolsMonitor {
                 this.createSettingsRAM();
                 this.createSettingsHDD();
                 this.createSettings();
-                const currentRate = parseFloat(app.ui.settings.getSettingValue(this.settingsRate.id, this.settingsRate.defaultValue));
-                this.menuDisplayOption = app.ui.settings.getSettingValue(ComfyKeyMenuDisplayOption, MenuDisplayOptions.Disabled);
+                const currentRate = parseFloat(app.extensionManager.setting.get(this.settingsRate.id));
+                this.menuDisplayOption = app.extensionManager.setting.get(ComfyKeyMenuDisplayOption);
                 app.ui.settings.addEventListener(`${ComfyKeyMenuDisplayOption}.change`, (e) => {
                     this.updateDisplay(e.detail.value);
                 });
